@@ -1,0 +1,323 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #14222a;
+  --color-paper: #faf7f1;
+  --color-paper-dim: #f1ebdf;
+  --color-accent: #2e6beb;
+  --color-accent-soft: #e9eefc;
+  /* Deeper variant for text — --color-accent alone is under 4.5:1 on paper. */
+  --color-accent-deep: #1f4fbd;
+
+  --font-serif: var(--font-instrument-serif), "Iowan Old Style", "Palatino Linotype", serif;
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scrollbar-color: color-mix(in oklab, var(--color-ink) 35%, transparent) transparent;
+  }
+
+  /* Native smooth-scroll fallback for whenever Lenis (SmoothScroll.tsx) is off. */
+  html:has(body[data-lenis="false"]) {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    position: relative;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Restrained film-grain texture over the whole page — adds depth to the
+     flat paper/ink surfaces without any JS. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: var(--color-paper);
+  }
+
+  :where(a, button):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  section[id] {
+    scroll-margin-top: 5.5rem;
+  }
+}
+
+@media (scripting: none) {
+  [data-reveal],
+  [data-line-inner],
+  [data-reveal-image],
+  [data-elevation-frame],
+  [data-elevation-spine],
+  [data-elevation-node] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+
+  /* No JS means no scroll-driven reel — fall back to the always-visible
+     stacked chapters on every screen size. */
+  [data-lift-desktop] {
+    display: none !important;
+  }
+
+  [data-lift-mobile] {
+    display: flex !important;
+  }
+}
+
+/* Pre-hidden in CSS (not just JS) so first paint has no reveal flash. */
+[data-line-inner] {
+  opacity: 0;
+}
+
+/* LiftCycler word swap: only the first word shows until JS takes over —
+   this is the correct resting state, not just an anti-flash measure, so
+   there is no scripting/reduced-motion override to add here. */
+[data-lift-word] {
+  opacity: 0;
+}
+
+[data-lift-word]:first-child {
+  opacity: 1;
+}
+
+[data-reveal] {
+  opacity: var(--reveal-opacity, 0);
+  transform: translateY(1.75rem);
+  will-change: transform, opacity;
+}
+
+[data-reveal-image] {
+  clip-path: inset(100% 0% 0% 0%);
+}
+
+[data-elevation-frame],
+[data-elevation-spine],
+[data-elevation-node] {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-line-inner],
+  [data-reveal],
+  [data-reveal-image],
+  [data-elevation-frame],
+  [data-elevation-spine],
+  [data-elevation-node] {
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* A pinned desktop reel never advances without scroll-driven JS — fall
+     back to the stacked variant so every word stays readable. */
+  [data-lift-desktop] {
+    display: none !important;
+  }
+
+  [data-lift-mobile] {
+    display: flex !important;
+  }
+}
+
+/* Rolling capabilities marquee */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee-scroll 32s linear infinite;
+}
+
+.marquee-track[data-paused] {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Native <dialog> mobile nav panel entrance */
+dialog[open] {
+  animation: dialog-in 0.32s ease-out;
+}
+
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+  }
+}
+
+dialog {
+  opacity: 1;
+  transition: opacity 0.25s ease-out, display 0.25s allow-discrete;
+}
+
+@keyframes dialog-in {
+  from {
+    transform: translateY(-12px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+dialog::backdrop {
+  animation: backdrop-in 0.32s ease-out;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* What We Lift SVG storytelling system — decorative looping embellishments
+   on top of an already-legible resting composition per state. Disabled
+   under reduced motion so the static resting pose is what's shown. */
+@media (prefers-reduced-motion: no-preference) {
+  .lift-visual-drift {
+    animation: lift-visual-drift 5.5s ease-in-out infinite;
+    transform-origin: center;
+  }
+
+  .lift-visual-settle {
+    animation: lift-visual-settle 6s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .lift-visual-flow {
+    stroke-dasharray: 700;
+    animation: lift-visual-flow-draw 3.4s ease-in-out infinite;
+  }
+
+  .lift-visual-pulse {
+    animation: lift-visual-pulse 4.5s ease-in-out infinite;
+  }
+
+  .lift-visual-rise {
+    animation: lift-visual-rise 2.6s ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: bottom;
+  }
+}
+
+@keyframes lift-visual-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-3px, 2px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes lift-visual-settle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(0.8deg);
+  }
+}
+
+@keyframes lift-visual-flow-draw {
+  0% {
+    stroke-dashoffset: 700;
+  }
+  55% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes lift-visual-pulse {
+  0% {
+    transform: translate(62px, 378px);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  30% {
+    transform: translate(222px, 198px);
+  }
+  60% {
+    transform: translate(342px, 320px);
+  }
+  90% {
+    transform: translate(420px, 88px);
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    transform: translate(62px, 378px);
+    opacity: 0;
+  }
+}
+
+@keyframes lift-visual-rise {
+  0%,
+  100% {
+    transform: scaleY(1) translateY(0);
+  }
+  50% {
+    transform: scaleY(1.035) translateY(-2px);
+  }
+}
