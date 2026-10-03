@@ -79,23 +79,20 @@
 @media (scripting: none) {
   [data-reveal],
   [data-line-inner],
-  [data-reveal-image],
-  [data-elevation-frame],
-  [data-elevation-spine],
-  [data-elevation-node] {
+  [data-reveal-image] {
     opacity: 1 !important;
     transform: none !important;
     clip-path: none !important;
   }
 
-  /* No JS means no scroll-driven reel — fall back to the always-visible
-     stacked chapters on every screen size. */
-  [data-lift-desktop] {
+  /* No JS means no scroll-driven stage — fall back to the always-visible
+     stacked chapters. */
+  [data-lift-stage] {
     display: none !important;
   }
 
-  [data-lift-mobile] {
-    display: flex !important;
+  [data-lift-fallback] {
+    display: block !important;
   }
 }
 
@@ -125,19 +122,10 @@
   clip-path: inset(100% 0% 0% 0%);
 }
 
-[data-elevation-frame],
-[data-elevation-spine],
-[data-elevation-node] {
-  opacity: 0;
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-line-inner],
   [data-reveal],
-  [data-reveal-image],
-  [data-elevation-frame],
-  [data-elevation-spine],
-  [data-elevation-node] {
+  [data-reveal-image] {
     opacity: 1 !important;
     transform: none !important;
     clip-path: none !important;
@@ -147,14 +135,26 @@
     scroll-behavior: auto;
   }
 
-  /* A pinned desktop reel never advances without scroll-driven JS — fall
-     back to the stacked variant so every word stays readable. */
-  [data-lift-desktop] {
+  /* The pinned stage never advances without scroll-driven JS motion — fall
+     back to the stacked variant so every chapter stays readable. */
+  [data-lift-stage] {
     display: none !important;
   }
 
-  [data-lift-mobile] {
-    display: flex !important;
+  [data-lift-fallback] {
+    display: block !important;
+  }
+}
+
+/* Extreme short viewports (e.g. landscape phone, heavy zoom) can't fit the
+   pinned stage readably either — same fallback. */
+@media (max-height: 480px) {
+  [data-lift-stage] {
+    display: none !important;
+  }
+
+  [data-lift-fallback] {
+    display: block !important;
   }
 }
 
@@ -217,107 +217,5 @@ dialog::backdrop {
   }
   to {
     opacity: 1;
-  }
-}
-
-/* What We Lift SVG storytelling system — decorative looping embellishments
-   on top of an already-legible resting composition per state. Disabled
-   under reduced motion so the static resting pose is what's shown. */
-@media (prefers-reduced-motion: no-preference) {
-  .lift-visual-drift {
-    animation: lift-visual-drift 5.5s ease-in-out infinite;
-    transform-origin: center;
-  }
-
-  .lift-visual-settle {
-    animation: lift-visual-settle 6s ease-in-out infinite;
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-
-  .lift-visual-flow {
-    stroke-dasharray: 700;
-    animation: lift-visual-flow-draw 3.4s ease-in-out infinite;
-  }
-
-  .lift-visual-pulse {
-    animation: lift-visual-pulse 4.5s ease-in-out infinite;
-  }
-
-  .lift-visual-rise {
-    animation: lift-visual-rise 2.6s ease-in-out infinite;
-    transform-box: fill-box;
-    transform-origin: bottom;
-  }
-}
-
-@keyframes lift-visual-drift {
-  0%,
-  100% {
-    transform: translate(0, 0);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translate(-3px, 2px);
-    opacity: 0.95;
-  }
-}
-
-@keyframes lift-visual-settle {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(0.8deg);
-  }
-}
-
-@keyframes lift-visual-flow-draw {
-  0% {
-    stroke-dashoffset: 700;
-  }
-  55% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes lift-visual-pulse {
-  0% {
-    transform: translate(62px, 378px);
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  30% {
-    transform: translate(222px, 198px);
-  }
-  60% {
-    transform: translate(342px, 320px);
-  }
-  90% {
-    transform: translate(420px, 88px);
-    opacity: 1;
-  }
-  95% {
-    opacity: 0;
-  }
-  100% {
-    transform: translate(62px, 378px);
-    opacity: 0;
-  }
-}
-
-@keyframes lift-visual-rise {
-  0%,
-  100% {
-    transform: scaleY(1) translateY(0);
-  }
-  50% {
-    transform: scaleY(1.035) translateY(-2px);
   }
 }

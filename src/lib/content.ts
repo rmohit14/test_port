@@ -93,7 +93,7 @@ export const SERVICES: ServiceItem[] = [
 export const WHAT_WE_LIFT = [
   {
     label: "Perception",
-    description: "The business looks as credible online as it already is in person.",
+    description: "Show up as confidently online as you do in person.",
   },
   {
     label: "Clarity",

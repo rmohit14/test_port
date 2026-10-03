@@ -1,47 +1,49 @@
 # Uploft Implementation Checkpoint
 
-## Locked design/constraints
-Brand: Uploft Digital, founder-led studio, Coimbatore. Colors: paper #faf7f1, ink #14222a, accent #2e6beb, accent-deep #1f4fbd, paper-dim #f1ebdf. Instrument Serif (headings) / DM Sans (body). Stack verified: Next 16.3.6, React 19.3, TS5, Tailwind v4, GSAP 3.13 + @gsap/react 2.1, Lenis 1.3. No new deps. No prices/testimonials/fabricated metrics. metadataBase intentionally unset (no confirmed domain) — correct, leave as-is.
+## Current pass: Focus Reveal + Scroll Chapters (supersedes "The Uploft Lift" below)
+Authoritative brief: `Uploft_Digital_Focus_Reveal_Scroll_Chapters_Claude_Master_Prompt.md`. Replaces the ribbon/café/browser-phone scene entirely with: an ivory hero (editorial headline left, a thick blue-edged optical-glass lens revealing the real Uploft icon right) followed by a navy "What We Lift" section where one pinned stage cycles Perception → Clarity → Experience → Action as enormous kinetic typography, driven by scroll only.
 
-## Audit findings (verified, not assumed)
-- Hero already uses `ElevationField.tsx` (SVG contour frames, not the old rejected 3D pillars) — 8 frames, cobalt spine+node, but **no single stronger-cobalt contour frame** yet, and headline has no blue emphasis on "seen".
-- `LiftCycler.tsx` runs a perpetual `setInterval` forever — brief wants a short settling sequence, not infinite rotation.
-- Contrast audit (computed WCAG ratios): accent-deep on paper = **6.745:1** (exceeds brief's own 5.640 target); plain `text-accent` has **zero** usages on small text anywhere in `src/components` (grep-verified) — contrast already compliant, no token change needed.
-- Marquee (`Marquee.tsx`) capability list is dev-facing (NEXT.JS FRONT END, VERCEL-READY etc.) — needs the public-facing list from the brief. No pause/resume control exists yet.
-- Portfolio copy already says "Luxury Retail / Commerce Concept"; tag array has "Commerce-Ready" which overclaims — soften to "Commerce Concept". Boutique/Café source repos are NOT in this workspace (confirmed via search) — screenshot recapture must go through the live Vercel URLs via Playwright if reachable.
-- FinalCTA has no Copy-Email fallback button.
-- SmoothScroll.tsx: single RAF driver (gsap.ticker → lenis.raf), Lenis scroll → ScrollTrigger.update — already correct, no dual-driver bug.
-- Header: native `<dialog>` via showModal/close — Escape/focus handled natively, already correct.
-- WhatWeLift: single master GSAP timeline (built in a prior pass) already addresses the "clipped title" bug class structurally — verify via screenshots, not rewrite blind.
+## Files (new)
+- `src/components/three-lift/iconTexture.ts` — `createSharpIconTexture()` / `createBlurredIconTexture()`, both canvas-composited from the real icon asset (same source, same registration point; blurred version adds `ctx.filter blur + globalAlpha`).
+- `src/components/three-lift/lensGeometry.ts` — `createLensGeometry()` (a biconvex `LatheGeometry` profile, reoriented to face the camera) and `createRimGeometry()` (a thin cobalt `TorusGeometry` at the lens equator).
+- `src/components/three-lift/LensScene.tsx` — the R3F scene: studio-style `RoomEnvironment` lighting, a large softly-blurred icon plane behind the lens, the convex glass lens + cobalt rim + restrained highlight, and a small sharp icon plane positioned just behind the glass so it reads through it.
+- `src/components/three-lift/FocusRevealStage.tsx` — poster-first wrapper (WebGL/reduced-motion gated), the ~0.8–1.2s optical settle, fine-pointer tilt confined to the lens group, scroll-exit drift, single-canvas-mount guarantee per breakpoint.
+- `src/components/motion/KineticWord.tsx` — decorative (`aria-hidden`) fill + cobalt-outline-echo word, built from shared characters so a GSAP-driven per-character wave can be applied externally via plain DOM mutation.
+- `public/images/uploft-icon-mark-clean.png` — a clean, transparent-background crop of the real icon (two uprights, curved cobalt bottoms, central arrow), cropped from the trusted `uploft-logo-main-clean.png` after the pre-existing `uploft-icon-mark.png` asset was found to have a stray artifact and non-transparent background (deleted).
 
-## Plan (implementing now)
-1. ElevationField: one frame stroked cobalt; add blue emphasis span around "seen".
-2. LiftCycler: replace infinite interval with a one-time settle sequence.
-3. Marquee: swap capability list; add accessible pause/resume button.
-4. Portfolio: "Commerce-Ready" → "Commerce Concept"; attempt live-URL verification + truthful boutique screenshot recapture via Playwright.
-5. FinalCTA: add Copy Email button w/ accessible success/error feedback.
-6. QA: lint, build, screenshots at 390×844/430×932/768×1024/1440×900/1920×1080, reduced motion, fast/reverse scroll, keyboard nav.
+## Files (changed)
+- `Hero.tsx` — rewritten: eyebrow/H1 ("seen." in cobalt italic with a curved underline)/body copy match the brief verbatim; `FocusRevealStage` replaces the old ribbon hero (mobile: below copy, ~300px; desktop: a real grid column, not a corner decoration).
+- `WhatWeLift.tsx` — rewritten: one pinned stage, one scrubbed `gsap.timeline` (the brief's exact 4-unit schedule: each chapter holds 0.65 units, 0.35-unit transitions, Action holds longest before release), full-width `KineticWord` per chapter, plain non-interactive bottom labels (no click/role/tabIndex), `gsap.matchMedia` branching the pin distance (280% desktop / 220% compact) without ever falling back to a 4-card layout.
+- `src/lib/content.ts` — `WHAT_WE_LIFT[0].description` updated to the brief's exact Perception copy.
+- `src/app/globals.css` — `[data-lift-desktop]`/`[data-lift-mobile]` renamed to `[data-lift-stage]`/`[data-lift-fallback]` to match the new markup; added an extreme-short-viewport (`max-height: 480px`) fallback rule.
+- `public/images/lift/hero-poster.png` — recaptured from the live, working scene (was still the old ribbon/café poster through most of this pass — see bugs below). The four unused `{action,clarity,experience,perception}-poster.png` files from the old chapter-sculpture design were deleted (confirmed zero references).
 
-## Completed work (all 6 plan items done)
-1. `ElevationField.tsx`: mid-depth frame (index 2) now strokes cobalt (`#2e6beb`, 0.55 opacity) distinct from the ink frames and the spine. `LineReveal.tsx` prop widened `string[]`→`ReactNode[]`; `Hero.tsx` headline wraps "seen" in `<span className="text-accent-deep">`.
-2. `LiftCycler.tsx`: `setInterval` replaced with staggered one-time `setTimeout`s (index 0→1→2→3), settles on the last word, no perpetual loop.
-3. `content.ts` CAPABILITIES replaced with the specified public list. `Marquee.tsx` rewritten client component: `data-paused` attribute + `.marquee-track[data-paused]{animation-play-state:paused}` in globals.css, visible "Pause"/"Play" button with `aria-pressed`, keyboard-focusable, outside the `aria-hidden` track. Verified via Playwright click: toggles label, `aria-pressed`, and actual computed `animationPlayState`.
-4. `content.ts`: boutique tag "Commerce-Ready"→"Commerce Concept". Verified both live demo URLs return 200 (Playwright). Boutique demo still shows "500+/10K+/100%" — confirmed it's a separate live Vercel deployment, not in this workspace, so the claims can't be edited at the source; recorded as pending below. Recaptured `public/images/portfolio-boutique.png` (replacing the old `.webp`) as a truthful crop of the live page that excludes the stats row entirely; added `object-left-top` for this image specifically in `SelectedWork.tsx` (keyed off `project.slug`) so the full headline/CTAs stay in frame at all breakpoints instead of center-cropping.
-5. `FinalCTA.tsx`: added "Copy email" button + `role="status" aria-live="polite"` feedback. Verified via Playwright: click copies `uploftdigital@gmail.com` to clipboard and shows "Copied to clipboard."
-6. QA done — see Check results below.
+## Real bugs found and fixed during this build (verified via direct pixel/DOM inspection and an isolated minimal repro, not assumed)
+1. **Reverse-scroll desync in the chapter counter/active-label**: a single bidirectional `tl.call()` per chapter boundary set the counter assuming *forward* entry; crossing the same boundary in reverse fired the identical callback with the identical (wrong-for-that-direction) payload, leaving the counter/active-label one full chapter ahead of the actually-visible panel on any backward or fast scroll. Fixed by replacing the per-boundary callbacks with a single `onUpdate` that recomputes the active index directly from the timeline's current time — correct regardless of direction or scroll speed. Verified via Playwright: forward, reverse, and large-jump scrolling all now keep the counter and visible panel in sync.
+2. **The hero's icon never rendered at all** (glass showed as a flat, featureless pale circle). Root-caused through a long isolation chain (raw WebGL → plain three.js via CDN → minimal React Three Fiber repro) down to: a texture assigned via React state *after* a mesh's first mount does not reliably bind to the GPU just by updating the material's `map` prop in place, in this `three`@0.186.1 / `@react-three/fiber`@9.8.1 combination — confirmed with a synchronous, dependency-free `DataTexture` test (works) versus the identical texture set one tick later via `useEffect` (fails, even on real GPU hardware, not just the sandbox's software renderer). Fixed by remounting the mesh (`key="pending"` → `key="loaded"`) exactly when the real texture arrives, which forces a fresh binding. This reintroduced a second, known issue (see #3) that had to be fixed differently this time.
+3. **Stale mesh reference**: `FocusRevealStage`'s settle animation captured a snapshot of each mesh once via `onReady`; once bug #2's fix started remounting the icon meshes, that snapshot pointed at the detached, pre-texture mesh instance. Fixed by exposing the live `RefObject`s themselves (not `.current` snapshots) through `LensSceneObjects`, and dereferencing `.current` at the moment each effect actually runs.
+4. **The lens occluded everything behind it regardless of its alpha**: a `transparent` `MeshPhysicalMaterial` still writes to the depth buffer by default, so the icon planes behind it failed the depth test and never drew, independent of opacity/transmission settings. Fixed with `depthWrite={false}` on the lens and rim materials.
+5. Real `transmission` (the originally-planned approach) samples a separate background render that, against this scene's bright authored lighting, blew out to solid white and erased the icon entirely — confirmed by isolating transmission vs. simple alpha blending side by side. Switched to simple alpha-blended glass (`transmission=0`, `opacity≈0.22`, low clearcoat), per the brief's explicit license to "favor convincing art direction over expensive physical simulation."
+6. A leftover settle-animation tween drove the lens material's opacity to a hardcoded `1` (fully opaque) on every hero mount, which — once translucency started coming from `opacity` instead of `transmission` (bug #5) — silently erased that translucency a few hundred ms after it appeared. Fixed by retargeting the tween to the glass's actual resting opacity.
+7. The hero's reduced-motion/WebGL-failure poster fallback (`public/images/lift/hero-poster.png`) was still the old, explicitly-excluded ribbon/café image for most of this pass (a leftover from before bug #2 was fixed, since no correct scene existed yet to capture from). Recaptured once the scene rendered correctly; verified the reduced-motion hero now shows the real composition. (A Next.js image-optimizer disk cache also needed clearing after overwriting the file, or the old cached render kept being served — not an app bug, just a necessary step when replacing a `public/` image the optimizer had already processed.)
 
-## Check results (actual, not assumed)
-- `npm run lint`: clean. `npm run build`: clean (only the expected, pre-existing `metadataBase` warning).
-- Screenshots at 390×844, 430×932, 768×1024, 1440×900, 1920×1080: zero horizontal overflow, zero console errors/warnings at every size.
-- Hero: full Elevation Field visible with margin at all 5 sizes, no cropping, cobalt contour + emphasis visible; mobile keeps headline/body/CTA in first view with a compact corner motif.
-- What We Lift: swept panel opacity to confirm all 4 states (01/04–04/04) show exactly one fully-opaque panel with matching word/description/counter. Stress-tested fast-forward jump, instant reverse jump, rapid scrub, and direct `#lift` anchor nav — every case landed on exactly one clean state, no stale/mismatched/double-visible panels.
-- Reduced motion (`reducedMotion:"reduce"`): hero renders the complete static composition immediately (no entrance play); What We Lift falls back to the stacked non-pinned list at desktop width per the existing CSS rule — all 4 ideas readable, no pin.
-- Keyboard: mobile menu opens via click, closes via Escape (native `<dialog>`), focus returns to the trigger button — verified live.
-- Contrast: accent-deep on paper = 6.745:1 (WCAG AA pass, exceeds brief's 5.640 target); no plain `text-accent` usage found anywhere for text.
-- Links: all 3 "Start a Project" instances point to the same mailto+subject; "View Work" → `#work`; Instagram link correct.
+## Actual checks run
+- `npm run lint` — clean. `npm run build` — clean (only the pre-existing `metadataBase` warning).
+- Playwright, both the sandbox's default software (SwiftShader) renderer and a real hardware GPU (`--use-angle=gl`, confirmed via `UNMASKED_RENDERER_WEBGL` as an Intel Iris Xe) — the texture bug (and its fix) reproduced identically on both, ruling out a software-renderer-only artifact.
+- Screenshots at 1440×900, a shorter laptop height (1440×760), and 390×844: hero headline/CTAs/lens artwork all composed correctly, no clipping or horizontal overflow at any of the three.
+- Chapter sync swept both directions and via large jumps at 1440×900: counter/visible-panel pairs confirmed correct for Perception→Action forward, Action→Perception reverse, and a direct jump from the start to the Action hold.
+- Chapter labels confirmed non-interactive via DOM inspection: `tabIndex=-1`, no `role`, `cursor: auto` (not `pointer`), no click handler.
+- `reducedMotion: "reduce"`: hero shows the complete static (now-correct) poster immediately; `[data-lift-stage]` is `display:none` / `[data-lift-fallback]` is `display:block` for `#lift`, confirmed via computed style.
+- No horizontal overflow (`scrollWidth > clientWidth`) confirmed false at all three required viewports.
 
-## Outstanding / cannot verify from here
-- **Boutique live demo** (`boutique-sample-sigma.vercel.app`) still publicly shows "500+ Products / 10K+ Happy Customers / 100% Authentic" — unsupported metrics. That demo is a separate deployment outside this repo; cannot be edited here. This site's own portfolio preview has been made truthful (recaptured, stats excluded), but the live demo link itself still shows the claims if a visitor clicks through.
-- **Performance (LCP/INP/CLS)**: no Lighthouse/CrUX tooling available in this environment; not measured. Bundle is static-only (no client data fetching), largest JS chunk ~224KB, but this is not a substitute for real lab/field metrics.
-- **metadataBase/canonical**: correctly left unset — no production domain has been confirmed; do not set one without the actual deployment origin.
-- Email delivery itself (receiving end) was not tested — no safe way to send a real enquiry from this environment.
+## Outstanding / not verified from here
+- No deployed/public preview URL exists for this repo. Local-only: `npm run build && npm run start`, served at `http://localhost:4300` in this session (port 3000 is the default if run unmodified).
+- No Lighthouse/CrUX/real-user performance tooling available in this environment — LCP/INP/CLS not measured, not claimed.
+- Pointer-tilt's exact translation/rotation range (brief: ~6–12px / 3–4°) was implemented per the brief's numbers but not pixel-measured against a live mouse-move in this environment.
+- The glass currently reads as a *translucent tinted disc* rather than a fully convincing optically-correct lens (no real refraction) — a deliberate trade-off after real `transmission` proved to wash the scene to solid white under this scene's lighting (see bug #5). It is legible, shows the real icon clearly through it, and has a visible cobalt edge/highlight, but is a simpler effect than the brief's most ambitious description of "convincing depth." Reported here rather than claimed as a full physical match.
+- Previous pass's unrelated outstanding item (boutique live demo's unsupported stat claims on a separate external Vercel deployment) remains outstanding — unrelated to this pass's scope.
+
+---
+
+## Prior pass (superseded): The Uploft Lift (replaced ElevationField/LiftVisual)
+Authoritative brief: `Uploft_Digital_Uploft_Lift_Master_Prompt.md`. A cobalt U-shaped ribbon lifting the Chai & Chaat café concept into a browser + phone, with matching What We Lift chapter poses. **Entirely replaced by the Focus Reveal pass above** — all `three-lift/{ribbon,screens,poses,LiftScene,HeroLiftStage,ChapterLiftStage}.ts(x)` files and the old chapter poster images were deleted. Kept for history only; see git-free diff context in the files changed above for what actually remains from it (`colors.ts`, `webgl.ts`).
