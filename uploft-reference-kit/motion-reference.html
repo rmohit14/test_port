@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#14222a">
+  <title>Uploft — hero and scroll chapters reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&amp;family=Instrument+Serif:ital@0;1&amp;display=swap" rel="stylesheet">
+  <style>
+    :root { --paper:#faf7f1; --ink:#14222a; --blue:#2e6beb; --body:"DM Sans",sans-serif; --display:"Instrument Serif",Georgia,serif; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); }
+    a { color:inherit; text-decoration:none; }
+    a:focus-visible { outline:2px solid var(--blue); outline-offset:5px; }
+    .shell { width:min(100%,1552px); margin-inline:auto; padding-inline:clamp(24px,5vw,76px); }
+    .header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding-block:26px; }
+    .brand { display:block; width:154px; height:auto; }
+    .header-links { display:flex; align-items:center; gap:30px; font-size:14px; }
+    .header-cta { padding:13px 22px; background:var(--blue); border-radius:28px; color:var(--paper); }
+    .hero { min-height:calc(100svh - 109px); display:grid; grid-template-columns:minmax(0,1.04fr) minmax(0,1fr); align-items:center; gap:clamp(28px,4vw,64px); padding-block:56px 96px; }
+    .hero-copy,.optical-column { min-width:0; }
+    .eyebrow { margin:0; color:var(--blue); font-size:12px; font-weight:500; letter-spacing:.2em; line-height:1.7; text-transform:uppercase; }
+    h1 { margin:25px 0 32px; font-family:var(--display); font-weight:400; font-size:clamp(64px,6.4vw,108px); line-height:.98; letter-spacing:-.035em; }
+    .headline-line { display:block; }
+    .seen { display:inline-block; position:relative; color:var(--blue); font-style:italic; }
+    .seen svg { position:absolute; width:100%; height:.17em; left:0; bottom:-.08em; overflow:visible; }
+    .intro { margin:0; max-width:31em; font-size:clamp(16px,1.3vw,19px); line-height:1.55; color:#40505a; }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:14px; margin-top:34px; }
+    .cta { display:inline-flex; align-items:center; justify-content:center; gap:22px; min-height:48px; padding:15px 25px; border:1px solid var(--ink); border-radius:32px; font-size:14px; font-weight:500; }
+    .cta-primary { background:var(--ink); color:var(--paper); }
+    .optical-column { perspective:1000px; }
+    .art-scroll,.art-pointer { transform-origin:50% 56%; }
+    .art-entry { display:block; width:100%; height:auto; animation:art-enter .85s ease-out both; }
+    @keyframes art-enter { from { opacity:.7; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    .chapter-story { position:relative; background:var(--ink); color:var(--paper); }
+    .chapter-stage { display:none; }
+    .chapter-fallback { padding-block:78px; }
+    .chapter-fallback article { padding-block:36px; }
+    .chapter-fallback h2 { margin:12px 0 20px; font:400 clamp(48px,11vw,140px)/1 var(--display); letter-spacing:-.035em; }
+    .chapter-fallback p { max-width:36em; margin:0; font-size:18px; line-height:1.5; color:#d8dbd8; }
+    .fallback-counter { font-size:14px; color:var(--blue); }
+    .chapter-story.is-enhanced .chapter-stage { display:flex; position:sticky; top:0; height:100svh; align-items:center; padding-block:clamp(28px,5vh,64px); }
+    .stage-inner { width:100%; }
+    .stage-meta { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+    .stage-eyebrow { display:flex; align-items:center; gap:18px; }
+    .stage-eyebrow::after { content:""; height:1px; width:60px; background:var(--blue); }
+    .counter { font-size:17px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .counter-current { color:var(--blue); }
+    .word-band { position:relative; height:clamp(170px,34svh,390px); margin-block:26px 12px; }
+    .word-panel { position:absolute; inset:0; opacity:0; pointer-events:none; }
+    .word-panel svg { display:block; width:100%; height:100%; overflow:hidden; }
+    .word-panel text { font-family:var(--display); font-weight:400; text-anchor:middle; }
+    .word-fill { fill:var(--paper); }
+    .word-echo { fill:none; stroke:var(--blue); stroke-width:1px; stroke-opacity:.85; }
+    .caption-stack { position:relative; min-height:76px; }
+    .caption { position:absolute; top:0; left:0; width:min(100%,660px); margin:0; font-size:clamp(17px,1.45vw,21px); line-height:1.5; color:#e1e2dc; opacity:0; }
+    .chapter-labels { display:flex; flex-wrap:wrap; gap:12px 34px; padding:0; margin:24px 0 0; list-style:none; font-size:14px; color:#b9c4c6; }
+    .chapter-labels li { padding-bottom:10px; border-bottom:2px solid transparent; }
+    .chapter-labels li[data-active="true"] { color:var(--paper); border-color:var(--blue); }
+    .chapter-story.is-enhanced .chapter-fallback { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .reference-end { padding-block:60px; display:flex; align-items:center; justify-content:space-between; gap:24px; font-size:14px; }
+    .reference-end p { margin:0; }
+    .reference-end a { text-decoration:underline; text-underline-offset:4px; }
+    @media (max-width:900px) {
+      .hero { grid-template-columns:minmax(0,1fr); min-height:0; padding-block:42px 56px; gap:32px; }
+      h1 { font-size:clamp(52px,10.5vw,90px); }
+      .hero-copy { max-width:720px; }
+      .optical-column { width:min(100%,560px); margin-inline:auto; }
+    }
+    @media (max-width:600px) {
+      .shell { padding-inline:24px; }
+      .header { padding-block:20px; }
+      .brand { width:131px; }
+      .header-links { gap:0; }
+      .header-links .header-cta { display:none; }
+      .header-links a { font-size:12px; }
+      .hero { padding-block:28px 44px; }
+      .eyebrow { font-size:10px; letter-spacing:.16em; }
+      h1 { margin-block:21px 28px; font-size:clamp(45px,12.6vw,70px); }
+      .intro { font-size:16px; }
+      .hero-actions { gap:12px; margin-top:27px; }
+      .cta { padding:13px 20px; font-size:13px; gap:14px; }
+      .stage-eyebrow { gap:10px; }
+      .stage-eyebrow::after { width:36px; }
+      .counter { font-size:14px; }
+      .word-band { height:clamp(170px,30svh,270px); margin-block:23px 10px; }
+      .caption-stack { min-height:82px; }
+      .caption { font-size:16px; }
+      .chapter-labels { gap:10px 16px; font-size:12px; margin-top:22px; }
+      .chapter-fallback h2 { font-size:clamp(44px,13vw,80px); }
+      .chapter-fallback p { font-size:16px; }
+    }
+    @media (prefers-reduced-motion:reduce) { .art-entry { animation:none; } }
+  </style>
+</head>
+<body id="top">
+  <header class="header shell">
+    <a href="#top" aria-label="Uploft Digital home"><img class="brand" src="assets/uploft-logo-main-clean.png" width="917" height="336" alt="Uploft"></a>
+    <nav class="header-links" aria-label="Reference navigation">
+      <a href="#chapters">Scroll reference</a>
+      <a class="header-cta" href="mailto:uploftdigital@gmail.com?subject=Uploft%20project">Start a Project</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero shell" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Digital brand elevation studio</p>
+        <h1 id="hero-title"><span class="headline-line">Raise how your</span><span class="headline-line">brand is <span class="seen">seen.<svg viewBox="0 0 180 20" aria-hidden="true"><path d="M2 11 C55 28 112 -6 178 13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span></span></h1>
+        <p class="intro">High-craft websites and digital experiences that elevate how your business looks, feels and communicates online.</p>
+        <div class="hero-actions">
+          <a class="cta cta-primary" href="mailto:uploftdigital@gmail.com?subject=Uploft%20project">Start a Project <span aria-hidden="true">→</span></a>
+          <a class="cta" href="#reference-end">View Work</a>
+        </div>
+      </div>
+      <div class="optical-column" aria-hidden="true">
+        <div class="art-scroll"><div class="art-pointer"><img class="art-entry" src="assets/uploft-focus-art.png" width="1254" height="1254" alt="" decoding="async" fetchpriority="high"></div></div>
+      </div>
+    </section>
+    <section id="chapters" class="chapter-story" aria-label="What we lift">
+      <div class="chapter-stage" aria-hidden="true">
+        <div class="stage-inner shell">
+          <div class="stage-meta">
+            <p class="eyebrow stage-eyebrow">What We Lift</p>
+            <span class="counter"><span class="counter-current">01</span> / 04</span>
+          </div>
+          <div class="word-band">
+            <div class="word-panel" data-word="Perception">
+              <svg><defs><path id="demo-perception-path"/></defs><text class="word-echo" transform="translate(4 -4)"><textPath href="#demo-perception-path" startOffset="50%">Perception</textPath></text><text class="word-fill"><textPath href="#demo-perception-path" startOffset="50%">Perception</textPath></text></svg>
+            </div>
+            <div class="word-panel" data-word="Clarity">
+              <svg><defs><path id="demo-clarity-path"/></defs><text class="word-echo" transform="translate(4 -4)"><textPath href="#demo-clarity-path" startOffset="50%">Clarity</textPath></text><text class="word-fill"><textPath href="#demo-clarity-path" startOffset="50%">Clarity</textPath></text></svg>
+            </div>
+            <div class="word-panel" data-word="Experience">
+              <svg><defs><path id="demo-experience-path"/></defs><text class="word-echo" transform="translate(4 -4)"><textPath href="#demo-experience-path" startOffset="50%">Experience</textPath></text><text class="word-fill"><textPath href="#demo-experience-path" startOffset="50%">Experience</textPath></text></svg>
+            </div>
+            <div class="word-panel" data-word="Action">
+              <svg><defs><path id="demo-action-path"/></defs><text class="word-echo" transform="translate(4 -4)"><textPath href="#demo-action-path" startOffset="50%">Action</textPath></text><text class="word-fill"><textPath href="#demo-action-path" startOffset="50%">Action</textPath></text></svg>
+            </div>
+          </div>
+          <div class="caption-stack">
+            <p class="caption">Show up as confidently online as you do in person.</p>
+            <p class="caption">The offer is understood in seconds, not paragraphs.</p>
+            <p class="caption">Every interaction feels considered, not accidental.</p>
+            <p class="caption">The next step — call, message, visit, buy — is always obvious.</p>
+          </div>
+          <ol class="chapter-labels"><li>Perception</li><li>Clarity</li><li>Experience</li><li>Action</li></ol>
+        </div>
+      </div>
+      <div class="chapter-fallback shell">
+        <p class="eyebrow">What We Lift</p>
+        <article><span class="fallback-counter">01 / 04</span><h2>Perception</h2><p>Show up as confidently online as you do in person.</p></article>
+        <article><span class="fallback-counter">02 / 04</span><h2>Clarity</h2><p>The offer is understood in seconds, not paragraphs.</p></article>
+        <article><span class="fallback-counter">03 / 04</span><h2>Experience</h2><p>Every interaction feels considered, not accidental.</p></article>
+        <article><span class="fallback-counter">04 / 04</span><h2>Action</h2><p>The next step — call, message, visit, buy — is always obvious.</p></article>
+      </div>
+    </section>
+  </main>
+  <footer id="reference-end" class="reference-end shell"><p>Uploft Digital · End of the scroll reference</p><a href="#top">Back to top</a></footer>
+  <script>
+    (() => {
+      "use strict";
+      const story = document.querySelector(".chapter-story");
+      const stage = story.querySelector(".chapter-stage");
+      const band = story.querySelector(".word-band");
+      const panels = [...story.querySelectorAll(".word-panel")];
+      const captions = [...story.querySelectorAll(".caption")];
+      const labels = [...story.querySelectorAll(".chapter-labels li")];
+      const counter = story.querySelector(".counter-current");
+      const hero = document.querySelector(".hero");
+      const artScroll = document.querySelector(".art-scroll");
+      const artPointer = document.querySelector(".art-pointer");
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      const short = matchMedia("(max-height: 480px)");
+      const fine = matchMedia("(hover: hover) and (pointer: fine)");
+      const geometries = [];
+      let scrollDistance = 1;
+      let frame = 0;
+      let active = -1;
+      let heroVisible = true;
+      let fontsReady = false;
+      let currentX = 0, currentY = 0, targetX = 0, targetY = 0;
+      const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+      const mix = (a, b, p) => a + (b - a) * p;
+      const ease = p => { const q = clamp(p); return q * q * (3 - 2 * q); };
+
+      // Pure playhead state: reverse scrolling requires no special callbacks.
+      function timelineState(time) {
+        const t = clamp(time, 0, 4);
+        let chapter = 0;
+        for (const boundary of [0.825, 1.825, 2.825]) if (t >= boundary) chapter++;
+        const states = Array.from({ length:4 }, () => ({ opacity:0, y:0 }));
+        for (let i = 0; i < 3; i++) {
+          if (t < i + 0.65) { states[i].opacity = 1; break; }
+          if (t < i + 1) {
+            const p = ease((t - i - 0.65) / 0.35);
+            states[i] = { opacity:1 - p, y:-16 * p };
+            states[i + 1] = { opacity:p, y:16 * (1 - p) };
+            break;
+          }
+        }
+        if (t >= 3) states[3].opacity = 1;
+        return { chapter, states };
+      }
+
+      function pathData(g, amplitude) {
+        const a = amplitude * g.height;
+        return `M8 ${g.base} C${g.width * 0.3} ${g.base - a} ${g.width * 0.7} ${g.base + a} ${g.width - 8} ${g.base}`;
+      }
+
+      // Measure the actual loaded glyphs across all allowed curve extremes.
+      function fitWord(panel, width, height) {
+        const svg = panel.querySelector("svg");
+        const path = svg.querySelector("path");
+        const fill = svg.querySelector(".word-fill");
+        const echo = svg.querySelector(".word-echo");
+        const g = { width, height, base:height * 0.72, path };
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        function boundsAt(size) {
+          fill.setAttribute("font-size", String(size));
+          echo.setAttribute("font-size", String(size));
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const amp of [-0.4, 0, 0.4]) {
+            path.setAttribute("d", pathData(g, amp));
+            const box = fill.getBBox();
+            minX = Math.min(minX, box.x); minY = Math.min(minY, box.y);
+            maxX = Math.max(maxX, box.x + box.width); maxY = Math.max(maxY, box.y + box.height);
+          }
+          return { minX, minY, maxX, maxY, advance:fill.getComputedTextLength() };
+        }
+        let low = 4, high = Math.max(width, height) * 2;
+        for (let n = 0; n < 16; n++) {
+          const candidate = (low + high) / 2;
+          const b = boundsAt(candidate);
+          const fits = b.advance > 0 && b.advance <= (width - 16) * 0.95 && b.maxX - b.minX <= width * 0.93 && b.minX >= width * 0.02 && b.maxX <= width * 0.98 && b.maxY - b.minY <= height - 52;
+          if (fits) low = candidate; else high = candidate;
+        }
+        const b = boundsAt(low);
+        if (!Number.isFinite(b.minY) || b.maxX <= b.minX) throw new Error("SVG glyph measurement unavailable");
+        g.base += (height - (b.maxY - b.minY)) / 2 - b.minY;
+        path.setAttribute("d", pathData(g, 0));
+        return g;
+      }
+
+      function restoreFallback() {
+        story.classList.remove("is-enhanced");
+        story.style.height = "";
+        active = -1;
+      }
+
+      function layout() {
+        if (!fontsReady || reduced.matches || short.matches) { restoreFallback(); requestFrame(); return; }
+        try {
+          story.classList.add("is-enhanced");
+          const width = band.clientWidth, height = band.clientHeight;
+          if (!width || !height) throw new Error("Word band unavailable");
+          panels.forEach((panel, i) => { geometries[i] = fitWord(panel, width, height); });
+          const inner = stage.querySelector(".stage-inner");
+          const stageHeight = stage.clientHeight;
+          const stageStyle = getComputedStyle(stage);
+          const available = stageHeight - parseFloat(stageStyle.paddingTop) - parseFloat(stageStyle.paddingBottom);
+          if (inner.scrollHeight > available) throw new Error("Use readable short-viewport fallback");
+          scrollDistance = stageHeight * (innerWidth >= 1024 ? 3.2 : 2.8);
+          story.style.height = `${stageHeight + scrollDistance}px`;
+          active = -1;
+          requestFrame();
+        } catch (error) { restoreFallback(); requestFrame(); }
+      }
+
+      function updateChapters() {
+        if (!story.classList.contains("is-enhanced")) return;
+        const t = clamp(-story.getBoundingClientRect().top / scrollDistance) * 4;
+        const snapshot = timelineState(t);
+        const curves = [
+          mix(0.38, 0.24, ease(t / 0.3)),
+          mix(0.3, 0.065, ease((t - 0.65) / 0.35)),
+          0.26 * Math.cos(clamp((t - 2) / 0.65) * Math.PI * 2),
+          0.13
+        ];
+        panels.forEach((panel, i) => {
+          panel.style.opacity = String(snapshot.states[i].opacity);
+          panel.style.transform = `translateY(${snapshot.states[i].y}px)`;
+          geometries[i].path.setAttribute("d", pathData(geometries[i], curves[i]));
+        });
+        if (snapshot.chapter !== active) {
+          active = snapshot.chapter;
+          counter.textContent = String(active + 1).padStart(2, "0");
+          captions.forEach((caption, i) => { caption.style.opacity = i === active ? "1" : "0"; });
+          labels.forEach((label, i) => { label.dataset.active = String(i === active); });
+        }
+      }
+
+      function updateHero() {
+        if (reduced.matches || !heroVisible) {
+          currentX = currentY = targetX = targetY = 0;
+          artPointer.style.transform = "";
+          artScroll.style.transform = "";
+          return false;
+        }
+        currentX = mix(currentX, targetX, 0.14);
+        currentY = mix(currentY, targetY, 0.14);
+        artPointer.style.transform = `translate(${currentX * 8}px,${currentY * 8}px) rotate(${currentX * 1.2}deg)`;
+        const drift = clamp(-hero.getBoundingClientRect().top / Math.max(1, hero.clientHeight));
+        artScroll.style.transform = `translateY(${-18 * drift}px)`;
+        return Math.abs(currentX - targetX) + Math.abs(currentY - targetY) > 0.002;
+      }
+
+      function render() {
+        frame = 0;
+        updateChapters();
+        if (updateHero()) requestFrame();
+      }
+      function requestFrame() { if (!frame) frame = requestAnimationFrame(render); }
+      addEventListener("scroll", requestFrame, { passive:true });
+      addEventListener("resize", layout);
+      reduced.addEventListener("change", layout);
+      short.addEventListener("change", layout);
+      hero.addEventListener("pointermove", event => {
+        if (!fine.matches || reduced.matches || !heroVisible) return;
+        const box = hero.getBoundingClientRect();
+        targetX = clamp((event.clientX - box.left) / box.width * 2 - 1, -1, 1);
+        targetY = clamp((event.clientY - box.top) / box.height * 2 - 1, -1, 1);
+        requestFrame();
+      }, { passive:true });
+      const resetPointer = () => { targetX = targetY = 0; requestFrame(); };
+      hero.addEventListener("pointerleave", resetPointer);
+      addEventListener("blur", resetPointer);
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(entries => { heroVisible = entries[0].isIntersecting; requestFrame(); }).observe(hero);
+      }
+      if ("ResizeObserver" in window) new ResizeObserver(layout).observe(band);
+      Promise.all([
+        document.fonts ? document.fonts.load('100px "Instrument Serif"') : Promise.resolve(),
+        document.fonts ? document.fonts.ready : Promise.resolve()
+      ]).catch(() => {}).then(() => { fontsReady = true; layout(); });
+      requestFrame();
+    })();
+  </script>
+</body>
+</html>

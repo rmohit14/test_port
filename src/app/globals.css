@@ -84,16 +84,42 @@
     transform: none !important;
     clip-path: none !important;
   }
+}
 
-  /* No JS means no scroll-driven stage — fall back to the always-visible
-     stacked chapters. */
-  [data-lift-stage] {
-    display: none !important;
-  }
+/* "What We Lift" pinned stage: hidden until JS has actually measured and
+   fitted the live SVG typography (`data-kinetic-ready="true"`, set once
+   `layout()` succeeds in WhatWeLift.tsx) — so no-JS visitors, and anyone
+   whose measurement genuinely fails, simply keep seeing the readable
+   fallback below instead of a broken or unsized stage. */
+[data-lift-stage] {
+  display: none;
+}
 
-  [data-lift-fallback] {
-    display: block !important;
-  }
+[data-lift-fallback] {
+  display: block;
+}
+
+[data-kinetic-ready="true"] [data-lift-stage] {
+  display: flex;
+}
+
+[data-kinetic-ready="true"] [data-lift-fallback] {
+  display: none;
+}
+
+/* A fixed, legible muted tone for inactive chapter labels — not a second
+   opacity multiplier stacked on top of an already-dim color. */
+[data-chapter-label] {
+  display: inline-block;
+  color: #b9c4c6;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 0.5rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+[data-chapter-label][data-active="true"] {
+  color: var(--color-paper);
+  border-color: var(--color-accent);
 }
 
 /* Pre-hidden in CSS (not just JS) so first paint has no reveal flash. */

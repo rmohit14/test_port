@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -8,192 +8,148 @@ import Container from "@/components/ui/Container";
 import KineticWord from "@/components/motion/KineticWord";
 import { prefersReducedMotion } from "@/lib/motion";
 import { WHAT_WE_LIFT } from "@/lib/content";
+import { clamp01, ease, fitWord, mix, pathData, timelineState, type WordGeometry } from "@/lib/kineticType";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const STEPS = WHAT_WE_LIFT.length;
 
-// The exact four-unit schedule from the brief: each chapter holds for 0.65
-// units (Action holds for a full unit, the longest, before release), with
-// 0.35-unit transitions between them.
-const HOLD = 0.65;
-const TRANSITION = 0.35;
-const UNIT = 1;
-const TOTAL = STEPS * UNIT;
-
-function labelStart(i: number) {
-  return i * UNIT;
-}
-
-function applyWave(panel: HTMLElement | null, amp: number, phase: number) {
-  if (!panel) return;
-  const chars = panel.querySelectorAll<HTMLElement>("[data-kinetic-char]");
-  chars.forEach((el, i) => {
-    const offset = amp * Math.sin(phase + i * 0.55);
-    el.style.transform = `translateY(${offset}em)`;
-  });
-}
-
-// The chapter boundary (in timeline time) past which chapter `i` counts as
-// active — the midpoint of its entrance crossfade.
-function switchPointFor(i: number) {
-  return labelStart(i) - TRANSITION + TRANSITION / 2;
-}
-
-// Derived purely from the current timeline time, not from which direction we
-// arrived from — this is what keeps the counter/active-label in sync with
-// the visible chapter on reverse and fast/skipped scrolling alike. A pair of
-// bidirectional tl.call()s at fixed positions can't do this: the same
-// callback fires crossing the boundary in either direction, so it can only
-// ever encode one direction's meaning correctly.
-function activeIndexForTime(time: number) {
-  let idx = 0;
-  for (let i = 1; i < STEPS; i++) {
-    if (time >= switchPointFor(i)) idx = i;
-  }
-  return idx;
+// Per-chapter curve amplitude as a function of the absolute scrubbed time —
+// ported from the approved motion reference. Perception resolves from a
+// slightly stronger curve into the gentle resting pose; Clarity settles
+// toward a clean baseline as it crosses in; Experience carries one slow
+// wave for the whole of its hold, driven by scroll progress, not a clock;
+// Action stays confident and nearly still.
+function curvesAt(t: number): number[] {
+  return [
+    mix(0.38, 0.24, ease(t / 0.3)),
+    mix(0.3, 0.065, ease((t - 0.65) / 0.35)),
+    0.26 * Math.cos(clamp01((t - 2) / 0.65) * Math.PI * 2),
+    0.13,
+  ];
 }
 
 export default function WhatWeLift() {
+  const uid = useId();
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
+  const bandRef = useRef<HTMLDivElement>(null);
+  const svgRefs = useRef<Array<SVGSVGElement | null>>([]);
   const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const captionRefs = useRef<Array<HTMLParagraphElement | null>>([]);
   const labelRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const counterRef = useRef<HTMLSpanElement>(null);
-  const progressRef = useRef<HTMLDivElement>(null);
 
-  // One master timeline — kinetic word deformation, captions, the counter,
-  // the active-label treatment and the progress line are all driven from
-  // this same scrubbed playhead. The bottom labels are plain, inert text;
-  // nothing here listens for clicks or keyboard focus on them.
+  // One deterministic pass from the absolute scrubbed position — no
+  // directional callbacks, so forward, reverse, fast-scroll and mid-section
+  // restoration all land in the same state a plain scroll to that position
+  // would produce.
   useGSAP(
     () => {
-      if (prefersReducedMotion()) return;
-      if (window.matchMedia("(max-height: 480px)").matches) return;
-      if (!sectionRef.current || !pinRef.current) return;
+      const section = sectionRef.current;
+      const pin = pinRef.current;
+      const band = bandRef.current;
+      if (!section || !pin || !band) return;
 
-      const mm = gsap.matchMedia();
+      let st: ScrollTrigger | null = null;
+      let geometries: (WordGeometry | null)[] = [];
+      let activeIndex = -1;
 
-      mm.add(
-        { isDesktop: "(min-width: 1024px)", isCompact: "(max-width: 1023px)" },
-        (context) => {
-          const conditions = context.conditions as { isDesktop: boolean } | undefined;
-          const endPercent = conditions?.isDesktop ? 280 : 220;
+      function updateChapters(t: number) {
+        const snapshot = timelineState(t, STEPS);
+        const curves = curvesAt(t);
+        panelRefs.current.forEach((panel, i) => {
+          if (!panel) return;
+          panel.style.opacity = String(snapshot.states[i].opacity);
+          panel.style.transform = `translateY(${snapshot.states[i].y}px)`;
+          const geom = geometries[i];
+          if (geom) geom.path.setAttribute("d", pathData(geom, curves[i]));
+        });
+        if (snapshot.chapter !== activeIndex) {
+          activeIndex = snapshot.chapter;
+          if (counterRef.current) {
+            counterRef.current.textContent = String(activeIndex + 1).padStart(2, "0");
+          }
+          captionRefs.current.forEach((el, i) => {
+            if (el) el.style.opacity = i === activeIndex ? "1" : "0";
+          });
+          labelRefs.current.forEach((el, i) => {
+            if (el) el.dataset.active = String(i === activeIndex);
+          });
+        }
+      }
 
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top top",
-              end: `+=${endPercent}%`,
-              pin: pinRef.current,
-              scrub: 0.5,
-            },
+      function layout() {
+        if (prefersReducedMotion() || window.matchMedia("(max-height: 480px)").matches) {
+          st?.kill();
+          st = null;
+          section!.dataset.kineticReady = "false";
+          return;
+        }
+
+        // Optimistically show the stage and measure synchronously, before
+        // the browser paints — if this throws, the catch below hides it
+        // again in the same tick, so there is nothing to flash either way.
+        section!.dataset.kineticReady = "true";
+        try {
+          const width = band!.clientWidth;
+          const height = band!.clientHeight;
+          if (!width || !height) throw new Error("word band unavailable");
+
+          const nextGeometries = svgRefs.current.map((svg) => {
+            if (!svg) throw new Error("missing chapter panel");
+            return fitWord(svg, width, height);
           });
 
-          const waveStates = WHAT_WE_LIFT.map(() => ({ amp: 0, phase: 0 }));
-
-          // Perception: a dispersed wave resolves into a confident, readable
-          // word — settles well before its hold ends.
-          waveStates[0] = { amp: 0.3, phase: 0 };
-          tl.to(
-            waveStates[0],
-            {
-              amp: 0.012,
-              duration: 0.3,
-              ease: "power2.out",
-              onUpdate: () => applyWave(panelRefs.current[0], waveStates[0].amp, waveStates[0].phase),
-            },
-            0
-          );
-
-          for (let i = 1; i < STEPS; i++) {
-            const exitAt = labelStart(i) - TRANSITION;
-            const holdAt = labelStart(i);
-            const outPanel = panelRefs.current[i - 1];
-            const inPanel = panelRefs.current[i];
-
-            if (outPanel) {
-              tl.to(outPanel, { opacity: 0, y: -14, duration: TRANSITION, ease: "power2.inOut" }, exitAt);
-            }
-            if (inPanel) {
-              const entranceY = i === STEPS - 1 ? 22 : 12;
-              tl.fromTo(
-                inPanel,
-                { opacity: 0, y: entranceY },
-                { opacity: 1, y: 0, duration: TRANSITION + (i === STEPS - 1 ? 0.1 : 0), ease: "power2.out" },
-                exitAt
-              );
-            }
-
-            if (i === 1) {
-              // Clarity: offsets settle toward a clean baseline.
-              waveStates[1] = { amp: 0.14, phase: 0.8 };
-              tl.fromTo(
-                waveStates[1],
-                { amp: 0.14 },
-                {
-                  amp: 0.008,
-                  duration: 0.3,
-                  ease: "power2.out",
-                  onUpdate: () => applyWave(panelRefs.current[1], waveStates[1].amp, waveStates[1].phase),
-                },
-                exitAt
-              );
-            }
-
-            if (i === 2) {
-              // Experience: a gentle flowing wave moves through the word
-              // for the whole hold, tied directly to scroll progress.
-              waveStates[2] = { amp: 0.05, phase: 0 };
-              tl.set(waveStates[2], { amp: 0.05, phase: 0 }, exitAt);
-              tl.to(
-                waveStates[2],
-                {
-                  phase: Math.PI * 2,
-                  duration: HOLD,
-                  ease: "none",
-                  onUpdate: () => applyWave(panelRefs.current[2], waveStates[2].amp, waveStates[2].phase),
-                },
-                holdAt
-              );
-            }
-
-            if (i === 3) {
-              // Action: a restrained upward movement resolves firmly — the
-              // panel's own entrance (above) already carries this; keep the
-              // word itself nearly still.
-              tl.call(() => applyWave(panelRefs.current[3], 0, 0), [], exitAt);
-            }
+          if (pin!.offsetHeight > window.innerHeight * 1.05) {
+            throw new Error("stage exceeds the available viewport height");
           }
 
-          // Counter + active-label treatment: recomputed from the absolute
-          // playhead position on every tick, so it can't desync from the
-          // visible panel regardless of scroll direction or speed.
-          let lastActiveIndex = -1;
-          const syncIndicators = () => {
-            const idx = activeIndexForTime(tl.time());
-            if (idx === lastActiveIndex) return;
-            lastActiveIndex = idx;
-            if (counterRef.current) {
-              counterRef.current.textContent = `${String(idx + 1).padStart(2, "0")} / ${String(STEPS).padStart(2, "0")}`;
-            }
-            labelRefs.current.forEach((el, li) => {
-              if (!el) return;
-              el.style.opacity = li === idx ? "1" : "0.4";
-            });
-          };
-          tl.eventCallback("onUpdate", syncIndicators);
-
-          tl.fromTo(progressRef.current, { scaleX: 0 }, { scaleX: 1, duration: TOTAL, ease: "none" }, 0);
-
-          return () => {
-            tl.scrollTrigger?.kill();
-            tl.kill();
-          };
+          geometries = nextGeometries;
+          st?.kill();
+          const isDesktop = window.innerWidth >= 1024;
+          const scrollDistance = pin!.offsetHeight * (isDesktop ? 3.2 : 2.8);
+          st = ScrollTrigger.create({
+            trigger: section,
+            start: "top top",
+            end: `+=${scrollDistance}`,
+            pin,
+            scrub: true,
+            onUpdate: (self) => updateChapters(self.progress * STEPS),
+          });
+          activeIndex = -1;
+          updateChapters(0);
+        } catch {
+          st?.kill();
+          st = null;
+          section!.dataset.kineticReady = "false";
         }
-      );
+      }
 
-      return () => mm.revert();
+      let resizeTimer = 0;
+      const onResize = () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(layout, 150);
+      };
+
+      const reducedQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const shortQuery = window.matchMedia("(max-height: 480px)");
+      reducedQuery.addEventListener("change", layout);
+      shortQuery.addEventListener("change", layout);
+      window.addEventListener("resize", onResize);
+      const resizeObserver = new ResizeObserver(onResize);
+      resizeObserver.observe(band);
+
+      document.fonts.ready.then(layout).catch(layout);
+
+      return () => {
+        window.clearTimeout(resizeTimer);
+        reducedQuery.removeEventListener("change", layout);
+        shortQuery.removeEventListener("change", layout);
+        window.removeEventListener("resize", onResize);
+        resizeObserver.disconnect();
+        st?.kill();
+      };
     },
     { scope: sectionRef }
   );
@@ -201,8 +157,9 @@ export default function WhatWeLift() {
   return (
     <section ref={sectionRef} id="lift" className="relative bg-ink text-paper">
       {/* Primary experience: one pinned stage, changed entirely by
-          scrolling. Hidden under reduced motion / extreme short viewports /
-          no-JS in favor of the plain fallback below. */}
+          scrolling. Hidden until live-measured and ready; falls back to the
+          plain stacked version below under reduced motion, a genuinely
+          short viewport, or if measurement itself fails. */}
       <div
         ref={pinRef}
         data-lift-stage
@@ -219,64 +176,78 @@ export default function WhatWeLift() {
               <span aria-hidden="true" className="h-px w-8 bg-accent" />
               What We Lift
             </span>
-            <span
-              ref={counterRef}
-              aria-live="polite"
-              className="font-serif text-sm text-paper/60"
-            >
-              01 / {String(STEPS).padStart(2, "0")}
+            <span aria-live="polite" className="font-serif text-sm text-paper/70">
+              <span ref={counterRef} className="text-accent">
+                01
+              </span>{" "}
+              / {String(STEPS).padStart(2, "0")}
             </span>
           </div>
 
-          <div className="relative mt-6 h-[34vh] min-h-[220px] sm:h-[38vh] lg:h-[42vh]">
+          <div
+            ref={bandRef}
+            className="relative mt-6 h-[clamp(170px,30svh,270px)] sm:h-[clamp(170px,34svh,390px)]"
+          >
             {WHAT_WE_LIFT.map((item, i) => (
               <div
                 key={item.label}
                 ref={(el) => {
                   panelRefs.current[i] = el;
                 }}
-                className="absolute inset-0 flex flex-col justify-center"
+                className="absolute inset-0"
                 style={{ opacity: i === 0 ? 1 : 0 }}
               >
                 <h2 className="sr-only">{item.label}</h2>
                 <KineticWord
+                  ref={(el) => {
+                    svgRefs.current[i] = el;
+                  }}
                   word={item.label}
-                  className="font-serif text-[clamp(2.75rem,10vw,8.5rem)] leading-[0.95] tracking-tight"
+                  pathId={`${uid}-path-${i}`}
                 />
-                <p className="mt-4 max-w-lg text-base leading-relaxed text-paper/65 sm:mt-6 sm:text-lg">
-                  {item.description}
-                </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 sm:mt-10">
-            <div
-              aria-hidden="true"
-              className="flex flex-wrap gap-x-6 gap-y-2 text-[0.7rem] font-medium uppercase tracking-[0.14em] text-paper/40 select-none sm:gap-x-10"
-            >
-              {WHAT_WE_LIFT.map((item, i) => (
-                <span
-                  key={item.label}
-                  ref={(el) => {
-                    labelRefs.current[i] = el;
-                  }}
-                  style={{ opacity: i === 0 ? 1 : 0.4 }}
-                >
-                  {item.label}
-                </span>
-              ))}
-            </div>
-            <div className="relative mt-3 h-px w-full bg-paper/15">
-              <div ref={progressRef} className="h-full w-full origin-left scale-x-0 bg-accent" />
-            </div>
+          <div className="relative mt-4 min-h-[82px] sm:mt-6 sm:min-h-[76px]">
+            {WHAT_WE_LIFT.map((item, i) => (
+              <p
+                key={item.label}
+                ref={(el) => {
+                  captionRefs.current[i] = el;
+                }}
+                className="absolute inset-x-0 top-0 max-w-lg text-base leading-relaxed text-paper/65 sm:text-lg"
+                style={{ opacity: i === 0 ? 1 : 0 }}
+              >
+                {item.description}
+              </p>
+            ))}
+          </div>
+
+          <div
+            aria-hidden="true"
+            className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[0.7rem] font-medium uppercase tracking-[0.14em] select-none sm:mt-8 sm:gap-x-10"
+          >
+            {WHAT_WE_LIFT.map((item, i) => (
+              <span
+                key={item.label}
+                ref={(el) => {
+                  labelRefs.current[i] = el;
+                }}
+                data-chapter-label
+                data-active={i === 0}
+              >
+                {item.label}
+              </span>
+            ))}
           </div>
         </Container>
       </div>
 
-      {/* Fallback: reduced motion, extreme short viewports, and the
-          no-JS baseline all get the same readable, normal-flow content. */}
-      <div data-lift-fallback className="hidden">
+      {/* Fallback: reduced motion, a genuinely short viewport, failed
+          measurement, and the no-JS baseline all get the same readable,
+          normal-flow content. */}
+      <div data-lift-fallback>
         <Container className="flex flex-col gap-16 py-20 sm:gap-20 sm:py-28">
           <span className="flex items-center gap-3 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-accent">
             <span aria-hidden="true" className="h-px w-8 bg-accent" />

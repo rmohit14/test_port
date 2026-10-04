@@ -24,7 +24,10 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  // No confirmed production domain yet, so metadataBase is deliberately unset.
+  // No confirmed production domain is configured anywhere in this project
+  // (no env var, no existing reference) — set it from one if it ever is,
+  // falling back to localhost for development rather than inventing one.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
     default: `${SITE.name} — Digital Brand Elevation Studio in Coimbatore`,
     template: `%s | ${SITE.name}`,

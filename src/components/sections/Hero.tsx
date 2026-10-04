@@ -6,7 +6,7 @@ import Tag from "@/components/ui/Tag";
 import Button from "@/components/ui/Button";
 import LineReveal from "@/components/motion/LineReveal";
 import Reveal from "@/components/motion/Reveal";
-import FocusRevealStage from "@/components/three-lift/FocusRevealStage";
+import OpticalArt from "@/components/motion/OpticalArt";
 import { MAILTO, SITE } from "@/lib/constants";
 
 export default function Hero() {
@@ -23,7 +23,9 @@ export default function Hero() {
       />
 
       <Container className="relative">
-        <div className="md:grid md:grid-cols-[52%_48%] md:items-center md:gap-8 lg:gap-12">
+        {/* `minmax(0, …)fr` tracks, not raw percentages — a plain `52% 48%`
+            plus the gap overflows the container by the gap's own width. */}
+        <div className="md:grid md:grid-cols-[minmax(0,1.04fr)_minmax(0,1fr)] md:items-center md:gap-8 lg:gap-12">
           <div>
             <Reveal className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <Tag className="text-ink/70">
@@ -71,43 +73,17 @@ export default function Hero() {
                 View Work
               </Button>
             </Reveal>
-
-            {/* Mobile optical stage — in normal flow beneath the copy, a
-                meaningful size rather than a corner decoration. */}
-            <div className="mt-10 h-[300px] w-full md:hidden">
-              <FocusRevealStage
-                posterSrc="/images/lift/hero-poster.png"
-                heroSectionRef={sectionRef}
-                mediaQuery="(max-width: 767px)"
-                className="size-full"
-              />
-            </div>
           </div>
 
-          {/* Desktop optical stage — a real grid column, substantial, never
-              a small icon in a padded card. */}
-          <div className="hidden md:flex md:items-center md:justify-center">
-            <FocusRevealStage
-              posterSrc="/images/lift/hero-poster.png"
-              heroSectionRef={sectionRef}
-              mediaQuery="(min-width: 768px)"
-              className="aspect-square w-full max-w-[560px]"
-            />
+          {/* Mobile: the complete artwork in normal flow below the copy, at
+              a meaningful size. Desktop: a real grid column that dominates
+              the right side — the same instance just reflows via the grid,
+              so there is only ever one copy of it on the page. */}
+          <div className="relative mx-auto mt-10 aspect-square w-full max-w-[420px] md:mx-0 md:mt-0 md:max-w-[560px]">
+            <OpticalArt heroSectionRef={sectionRef} className="size-full" />
           </div>
         </div>
       </Container>
-
-      <Reveal
-        delay={0.4}
-        className="pointer-events-none absolute inset-x-0 bottom-8 hidden justify-center sm:flex"
-      >
-        <div className="flex flex-col items-center gap-2 text-ink/70">
-          <span className="text-[0.7rem] font-medium uppercase tracking-[0.2em]">
-            Scroll
-          </span>
-          <span className="h-10 w-px bg-current" />
-        </div>
-      </Reveal>
     </section>
   );
 }

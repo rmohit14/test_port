@@ -1,31 +1,41 @@
-// A reusable kinetic word: an ivory fill and a cobalt outline echo, built
-// from the same characters so they share identical metrics. The wave
-// deformation (per-character translateY) is applied externally, directly
-// to `[data-kinetic-char]` spans via GSAP — this component only renders
-// the shared structure. Purely decorative: the real semantic word lives in
-// a separate visually-hidden heading, so this whole thing is aria-hidden.
-export default function KineticWord({ word, className = "" }: { word: string; className?: string }) {
-  const chars = Array.from(word);
+import { forwardRef } from "react";
 
+type Props = {
+  word: string;
+  pathId: string;
+};
+
+// Live SVG typography: one curved path shared by the ivory fill and the
+// cobalt echo, so both read the exact same text, font size and baseline —
+// the echo is a pure positional offset, not a second independently-laid-out
+// copy. (The previous version duplicated the word as per-character spans
+// and applied wave phase by the combined index of outline+fill spans,
+// which could desync the two; sharing one <textPath> removes that class of
+// bug entirely.) Purely decorative — the real semantic word lives in a
+// visually-hidden heading the parent renders alongside this.
+const KineticWord = forwardRef<SVGSVGElement, Props>(function KineticWord({ word, pathId }, ref) {
   return (
-    <span aria-hidden="true" className={`relative inline-block ${className}`}>
-      <span
-        data-kinetic-echo
-        className="pointer-events-none absolute inset-0 translate-x-[3px] translate-y-[3px] text-transparent [-webkit-text-stroke:1.5px_var(--color-accent)] opacity-60"
+    <svg ref={ref} aria-hidden="true" className="block size-full overflow-visible font-serif">
+      <defs>
+        <path id={pathId} />
+      </defs>
+      <text
+        className="kinetic-word-echo fill-none stroke-accent/85"
+        strokeWidth={1}
+        textAnchor="middle"
+        transform="translate(3,-3)"
       >
-        {chars.map((c, i) => (
-          <span key={i} data-kinetic-char data-kinetic-group="echo" className="inline-block">
-            {c === " " ? " " : c}
-          </span>
-        ))}
-      </span>
-      <span data-kinetic-fill className="relative text-paper">
-        {chars.map((c, i) => (
-          <span key={i} data-kinetic-char data-kinetic-group="fill" className="inline-block">
-            {c === " " ? " " : c}
-          </span>
-        ))}
-      </span>
-    </span>
+        <textPath href={`#${pathId}`} startOffset="50%">
+          {word}
+        </textPath>
+      </text>
+      <text className="kinetic-word-fill fill-paper" textAnchor="middle">
+        <textPath href={`#${pathId}`} startOffset="50%">
+          {word}
+        </textPath>
+      </text>
+    </svg>
   );
-}
+});
+
+export default KineticWord;
